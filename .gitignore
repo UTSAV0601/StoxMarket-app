@@ -1,0 +1,16 @@
+<<<<<<< HEAD
+venv/
+=======
+# Python venv
+backend/venv/
+
+# Node modules
+frontend/node_modules/
+
+# Env files
+**/.env
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+>>>>>>> b5b20af (intilize git repo in the main app to track backend and frontend together)
