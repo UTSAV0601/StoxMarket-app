@@ -14,3 +14,15 @@ function SearchBar() {
     }
 }
 };
+return (
+  <div>
+    <input
+      placeholder="Enter stock symbol"
+      value={symbol}
+      onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+    />
+     <button onClick={fetchStock}>Search</button>
+     <pre>{data ? JSON.stringify(data, null, 2) : "No data yet"}</pre>
+  </div>
+);
+export default SearchBar;
