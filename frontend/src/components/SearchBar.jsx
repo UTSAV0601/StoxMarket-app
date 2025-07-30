@@ -1,72 +1,87 @@
 import { useState } from "react";
 import axios from "axios";
+import {
+  TextField,
+  InputAdornment,
+  IconButton,
+  List,
+  ListItem,
+  Paper,
+  Box,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 
 function SearchBar() {
-  const [query, setQuery] = useState("");
+  const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const navigate = useNavigate();
 
-  const handleSearch = async () => {
-    if (query) {
-      navigate(`/stock/${query}`);
-    }
-  };
-
-  const handleSuggestionClick = (symbol) => {
-    navigate(`/stock/${symbol}`);
-  };
-
-  const fetchSuggestions = async (value) => {
+  const fetchSuggestions = async (keyword) => {
     try {
-      const res = await axios.get(`http://localhost:8000/api/search/${value}`);
+      const res = await axios.get(`http://localhost:8000/api/search/${keyword}`);
       setSuggestions(res.data.bestMatches || []);
-    } catch (err) {
-      console.error("Suggestion fetch failed", err);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
     }
   };
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const value = e.target.value;
-    setQuery(value);
-    if (value.length > 1) {
-      fetchSuggestions(value);
-    } else {
+    setInput(value);
+    if (value.length >= 2) fetchSuggestions(value);
+    else setSuggestions([]);
+  };
+
+  const handleSearch = () => {
+    if (input.trim()) {
+      navigate(`/stock/${input.trim().toUpperCase()}`);
       setSuggestions([]);
     }
   };
 
+  const handleSuggestionClick = (symbol) => {
+    setInput(symbol);
+    setSuggestions([]);
+    navigate(`/stock/${symbol}`);
+  };
+
   return (
-    <div style={{ padding: "1rem" }}>
-      <input
-        value={query}
-        onChange={handleChange}
-        placeholder="Search stock (e.g. apple)"
-        style={{ padding: "0.5rem", width: "250px" }}
+    <Box sx={{ width: 400, margin: "2rem auto", position: "relative" }}>
+      <TextField
+        fullWidth
+        label="Search for a stock"
+        variant="outlined"
+        value={input}
+        onChange={handleInputChange}
+        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={handleSearch}>
+                <SearchIcon />
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
-      <button onClick={handleSearch} style={{ marginLeft: "0.5rem" }}>
-        🔍
-      </button>
 
       {suggestions.length > 0 && (
-        <ul style={{ listStyle: "none", marginTop: "0.5rem" }}>
-          {suggestions.map((item, idx) => (
-            <li
-              key={idx}
-              onClick={() => handleSuggestionClick(item["1. symbol"])}
-              style={{
-                cursor: "pointer",
-                padding: "0.3rem",
-                border: "1px solid #ccc",
-                marginTop: "2px",
-              }}
-            >
-              {item["1. symbol"]} – {item["2. name"]}
-            </li>
-          ))}
-        </ul>
+        <Paper sx={{ position: "absolute", width: "100%", zIndex: 10 }}>
+          <List>
+            {suggestions.map((item) => (
+              <ListItem
+                key={item["1. symbol"]}
+                button
+                onClick={() => handleSuggestionClick(item["1. symbol"])}
+              >
+                {item["1. symbol"]} - {item["2. name"]}
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
       )}
-    </div>
+    </Box>
   );
 }
 

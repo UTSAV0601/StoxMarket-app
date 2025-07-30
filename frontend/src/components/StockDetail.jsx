@@ -1,52 +1,73 @@
-import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
+import {
+  Card,
+  CardContent,
+  Typography,
+  CircularProgress,
+  Box,
+} from "@mui/material";
 
 function StockDetail() {
   const { symbol } = useParams();
   const [stockData, setStockData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await axios.get(`http://localhost:8000/api/stock/${symbol}`);
-        setStockData(res.data);
-      } catch (error) {
-        console.error("Failed to fetch stock data", error);
-      }
+  const fetchStockDetail = async () => {
+    try {
+      const res = await axios.get(`http://localhost:8000/api/stock/${symbol}`);
+      setStockData(res.data);
+    } catch (error) {
+      console.error("Error fetching stock data:", error);
+    } finally {
+      setLoading(false);
     }
-    fetchData();
-  }, [symbol]);
-
-  const getLatestData = () => {
-    if (
-      stockData &&
-      stockData["Time Series (Daily)"] &&
-      Object.keys(stockData["Time Series (Daily)"]).length > 0
-    ) {
-      const date = Object.keys(stockData["Time Series (Daily)"])[0];
-      return {
-        date,
-        ...stockData["Time Series (Daily)"][date],
-      };
-    }
-    return null;
   };
 
-  const latest = getLatestData();
+  useEffect(() => {
+    fetchStockDetail();
+  }, [symbol]);
 
-  if (!latest) return <div>Loading stock data...</div>;
+  const latestDate = stockData
+    ? Object.keys(stockData["Time Series (Daily)"])[0]
+    : null;
+
+  const latestInfo = latestDate
+    ? stockData["Time Series (Daily)"][latestDate]
+    : null;
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" mt={4}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!latestInfo) {
+    return (
+      <Box textAlign="center" mt={4}>
+        <Typography variant="h6">No data found for {symbol}</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <div style={{ margin: "2rem", padding: "2rem", border: "1px solid #ddd", borderRadius: "8px", maxWidth: "400px" }}>
-      <h2>{symbol.toUpperCase()} - Stock Details</h2>
-      <p><strong>Date:</strong> {latest.date}</p>
-      <p><strong>Open:</strong> {latest["1. open"]}</p>
-      <p><strong>High:</strong> {latest["2. high"]}</p>
-      <p><strong>Low:</strong> {latest["3. low"]}</p>
-      <p><strong>Close:</strong> {latest["4. close"]}</p>
-      <p><strong>Volume:</strong> {latest["5. volume"]}</p>
-    </div>
+    <Box mt={4} display="flex" justifyContent="center">
+      <Card sx={{ maxWidth: 500, padding: 2 }}>
+        <CardContent>
+          <Typography variant="h5" gutterBottom>
+            {symbol} - {latestDate}
+          </Typography>
+          <Typography>Open: ${latestInfo["1. open"]}</Typography>
+          <Typography>High: ${latestInfo["2. high"]}</Typography>
+          <Typography>Low: ${latestInfo["3. low"]}</Typography>
+          <Typography>Close: ${latestInfo["4. close"]}</Typography>
+          <Typography>Volume: {latestInfo["5. volume"]}</Typography>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
 
