@@ -1,11 +1,15 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SearchBar from './components/SearchBar';
+import StockPage from './components/StockDetail';
 
 function App() {
   return (
-    <div>
-      <h1>Stock Tracker</h1>
-      <SearchBar />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<SearchBar />} />
+        <Route path="/stock/:symbol" element={<StockPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
