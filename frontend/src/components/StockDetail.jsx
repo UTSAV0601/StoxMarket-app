@@ -7,6 +7,7 @@ import {
   Typography,
   CircularProgress,
   Box,
+  Grid,
 } from "@mui/material";
 
 function StockDetail() {
@@ -37,6 +38,17 @@ function StockDetail() {
     ? stockData["Time Series (Daily)"][latestDate]
     : null;
 
+  const prevDate = stockData
+    ? Object.keys(stockData["Time Series (Daily)"])[1]
+    : null;
+
+  const prevClose = prevDate
+    ? parseFloat(stockData["Time Series (Daily)"][prevDate]["4. close"])
+    : null;
+
+  const closePrice = latestInfo ? parseFloat(latestInfo["4. close"]) : null;
+  const priceChangeColor = closePrice > prevClose ? "green" : "red";
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" mt={4}>
@@ -55,16 +67,25 @@ function StockDetail() {
 
   return (
     <Box mt={4} display="flex" justifyContent="center">
-      <Card sx={{ maxWidth: 500, padding: 2 }}>
+      <Card sx={{ maxWidth: 600, width: "100%", padding: 3, bgcolor: "#f4f4f4" }}>
         <CardContent>
           <Typography variant="h5" gutterBottom>
             {symbol} - {latestDate}
           </Typography>
-          <Typography>Open: ${latestInfo["1. open"]}</Typography>
-          <Typography>High: ${latestInfo["2. high"]}</Typography>
-          <Typography>Low: ${latestInfo["3. low"]}</Typography>
-          <Typography>Close: ${latestInfo["4. close"]}</Typography>
-          <Typography>Volume: {latestInfo["5. volume"]}</Typography>
+
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <Typography>Open: ${latestInfo["1. open"]}</Typography>
+              <Typography>High: ${latestInfo["2. high"]}</Typography>
+              <Typography>Low: ${latestInfo["3. low"]}</Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography sx={{ color: priceChangeColor }}>
+                Close: ${latestInfo["4. close"]}
+              </Typography>
+              <Typography>Volume: {latestInfo["5. volume"]}</Typography>
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
     </Box>

@@ -47,11 +47,10 @@ function SearchBar() {
   };
 
   return (
-    <Box sx={{ width: 400, margin: "2rem auto", position: "relative" }}>
+    <Box sx={{ position: "relative", width: "100%" }}>
       <TextField
-        fullWidth
-        label="Search for a stock"
-        variant="outlined"
+        size="small"
+        placeholder="Search stocks..."
         value={input}
         onChange={handleInputChange}
         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -63,7 +62,9 @@ function SearchBar() {
               </IconButton>
             </InputAdornment>
           ),
+          sx: { backgroundColor: "white", borderRadius: 1 },
         }}
+        sx={{ width: 300 }}
       />
 
       {suggestions.length > 0 && (
