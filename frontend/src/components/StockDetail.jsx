@@ -1,4 +1,3 @@
-// src/components/StockDetail.jsx
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
@@ -11,23 +10,48 @@ import {
   CircularProgress,
 } from "@mui/material";
 import axios from "axios";
+import {
+  Chart as ChartJS,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
+
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
 function StockDetail() {
   const { symbol } = useParams();
   const [data, setData] = useState(null);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStock = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/api/stock/${symbol}`);
-        setData(res.data);
+        const [quoteRes, historyRes] = await Promise.all([
+          axios.get(`http://localhost:8000/api/stock/${symbol}`),
+          axios.get(`http://localhost:8000/api/history/${symbol}`),
+        ]);
+        setData(quoteRes.data);
+
+        const timeSeries = historyRes.data["Time Series (Daily)"];
+        const labels = Object.keys(timeSeries).slice(0, 10).reverse();
+        const prices = labels.map((date) =>
+          parseFloat(timeSeries[date]["4. close"])
+        );
+
+        setHistory({ labels, prices });
       } catch (err) {
         console.error("Failed to fetch stock data", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchStock();
   }, [symbol]);
 
@@ -44,8 +68,21 @@ function StockDetail() {
   const percent = parseFloat(data["10. change percent"]);
   const isPositive = change >= 0;
 
+  const chartData = {
+    labels: history.labels,
+    datasets: [
+      {
+        label: "Closing Price",
+        data: history.prices,
+        fill: false,
+        borderColor: isPositive ? "limegreen" : "red",
+        tension: 0.2,
+      },
+    ],
+  };
+
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ p: 4 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         {symbol.toUpperCase()}
       </Typography>
@@ -56,11 +93,11 @@ function StockDetail() {
 
       <Divider sx={{ my: 3 }} />
 
-      <Grid container spacing={2}>
+      <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
-          <Card sx={{ backgroundColor: "#1f1f1f", color: "#e0e0e0", boxShadow: 3 }}>
+          <Card sx={{ backgroundColor: "#1e1e1e" }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Summary</Typography>
+              <Typography variant="h6">Summary</Typography>
               <Typography>Open: ${parseFloat(data["02. open"]).toFixed(2)}</Typography>
               <Typography>High: ${parseFloat(data["03. high"]).toFixed(2)}</Typography>
               <Typography>Low: ${parseFloat(data["04. low"]).toFixed(2)}</Typography>
@@ -71,23 +108,10 @@ function StockDetail() {
         </Grid>
 
         <Grid item xs={12} md={8}>
-          <Card sx={{ backgroundColor: "#1f1f1f", color: "#e0e0e0", boxShadow: 3, height: "100%" }}>
+          <Card sx={{ backgroundColor: "#1e1e1e", height: "100%" }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Stock Chart (Coming Soon)</Typography>
-              <Box
-                sx={{
-                  height: 300,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "#2c2c2c",
-                  borderRadius: "4px"
-                }}
-              >
-                <Typography variant="body2" color="gray">
-                  Stock chart will be shown here.
-                </Typography>
-              </Box>
+              <Typography variant="h6" gutterBottom>Stock Chart</Typography>
+              <Line data={chartData} />
             </CardContent>
           </Card>
         </Grid>

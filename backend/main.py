@@ -41,3 +41,15 @@ def search_symbol(keyword: str):
     }
     response = requests.get(url, params=params)
     return response.json()
+
+@app.get("/api/history/{symbol}")
+def get_stock_history(symbol: str):
+    url = "https://www.alphavantage.co/query"
+    params = {
+        "function": "TIME_SERIES_DAILY",
+        "symbol": symbol,
+        "outputsize": "compact",
+        "apikey": API_KEY
+    }
+    response = requests.get(url, params=params)
+    return response.json()
