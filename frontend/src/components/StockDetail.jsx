@@ -1,123 +1,118 @@
+// src/pages/StockDetail.jsx
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Divider,
-  CircularProgress,
-} from "@mui/material";
+import { Box, Typography, Grid, Divider, CircularProgress, Card, CardContent } from "@mui/material";
 import axios from "axios";
-import {
-  Chart as ChartJS,
-  LineElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
 import { Line } from "react-chartjs-2";
+import { Chart as ChartJS, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend } from "chart.js";
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
 
 function StockDetail() {
-  const { symbol } = useParams();
-  const [data, setData] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+    const { symbol } = useParams();
+    const [data, setData] = useState(null);
+    const [chartData, setChartData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStock = async () => {
-      try {
-        const [quoteRes, historyRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/stock/${symbol}`),
-          axios.get(`http://localhost:8000/api/history/${symbol}`),
-        ]);
-        setData(quoteRes.data);
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await axios.get(`http://localhost:8000/api/stock/${symbol}`);
+                setData(res.data);
 
-        const timeSeries = historyRes.data["Time Series (Daily)"];
-        const labels = Object.keys(timeSeries).slice(0, 10).reverse();
-        const prices = labels.map((date) =>
-          parseFloat(timeSeries[date]["4. close"])
-        );
+                const timeSeries = await axios.get(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${import.meta.env.VITE_ALPHA_VANTAGE_API_KEY}`);
+                const timeSeriesData = timeSeries.data["Time Series (Daily)"];
+                const labels = Object.keys(timeSeriesData).reverse().slice(-30);
+                const prices = labels.map(date => parseFloat(timeSeriesData[date]["4. close"]));
+                setChartData({
+                    labels,
+                    datasets: [
+                        {
+                            label: `${symbol} Price`,
+                            data: prices,
+                            fill: false,
+                            borderColor: "#1976d2",
+                            tension: 0.1,
+                            pointRadius: 0
+                        }
+                    ]
+                });
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        setHistory({ labels, prices });
-      } catch (err) {
-        console.error("Failed to fetch stock data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        fetchData();
+    }, [symbol]);
 
-    fetchStock();
-  }, [symbol]);
+    if (loading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>;
+    if (!data) return <Typography variant="h6" align="center">No data available for {symbol}</Typography>;
 
-  if (loading) {
-    return <Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>;
-  }
+    return (
+        <Box sx={{ p: 4, backgroundColor: "#f4f6f8", minHeight: "100vh" }}>
+            <Typography variant="h4" fontWeight="bold" gutterBottom align="center">{symbol} Details</Typography>
 
-  if (!data || !data["05. price"]) {
-    return <Typography sx={{ m: 4 }}>Stock data unavailable for "{symbol}"</Typography>;
-  }
+            <Card elevation={4} sx={{ borderRadius: 3, overflow: "hidden", maxWidth: 900, mx: "auto" }}>
+                {/* Header */}
+                <Box sx={{ backgroundColor: "#1976d2", color: "white", p: 2 }}>
+                    <Typography variant="h5" fontWeight="bold">{data["01. symbol"]}</Typography>
+                    <Typography variant="subtitle2">Latest Trading Data</Typography>
+                </Box>
 
-  const price = parseFloat(data["05. price"]);
-  const change = parseFloat(data["09. change"]);
-  const percent = parseFloat(data["10. change percent"]);
-  const isPositive = change >= 0;
+                {/* Content */}
+                <CardContent>
+                    <Grid container spacing={2}>
+                        <Grid item xs={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Price</Typography>
+                            <Typography variant="h6">${parseFloat(data["05. price"]).toFixed(2)}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Volume</Typography>
+                            <Typography variant="h6">{data["06. volume"]}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Open</Typography>
+                            <Typography variant="body1">${data["02. open"]}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="subtitle2" color="textSecondary">High</Typography>
+                            <Typography variant="body1">${data["03. high"]}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Low</Typography>
+                            <Typography variant="body1">${data["04. low"]}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Latest Trading Day</Typography>
+                            <Typography variant="body1">{data["07. latest trading day"]}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Previous Close</Typography>
+                            <Typography variant="body1">${data["08. previous close"]}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="subtitle2" color="textSecondary">Change</Typography>
+                            <Typography variant="body1">${data["09. change"]}</Typography>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="textSecondary">Change Percent</Typography>
+                            <Typography variant="body1">{data["10. change percent"]}</Typography>
+                        </Grid>
+                    </Grid>
+                </CardContent>
+            </Card>
 
-  const chartData = {
-    labels: history.labels,
-    datasets: [
-      {
-        label: "Closing Price",
-        data: history.prices,
-        fill: false,
-        borderColor: isPositive ? "limegreen" : "red",
-        tension: 0.2,
-      },
-    ],
-  };
-
-  return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        {symbol.toUpperCase()}
-      </Typography>
-
-      <Typography variant="h3" sx={{ color: isPositive ? "limegreen" : "red", mb: 2 }}>
-        ${price.toFixed(2)} {isPositive ? "▲" : "▼"} {change.toFixed(2)} ({percent.toFixed(2)}%)
-      </Typography>
-
-      <Divider sx={{ my: 3 }} />
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ backgroundColor: "#1e1e1e" }}>
-            <CardContent>
-              <Typography variant="h6">Summary</Typography>
-              <Typography>Open: ${parseFloat(data["02. open"]).toFixed(2)}</Typography>
-              <Typography>High: ${parseFloat(data["03. high"]).toFixed(2)}</Typography>
-              <Typography>Low: ${parseFloat(data["04. low"]).toFixed(2)}</Typography>
-              <Typography>Prev Close: ${parseFloat(data["08. previous close"]).toFixed(2)}</Typography>
-              <Typography>Volume: {Number(data["06. volume"]).toLocaleString()}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={8}>
-          <Card sx={{ backgroundColor: "#1e1e1e", height: "100%" }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Stock Chart</Typography>
-              <Line data={chartData} />
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
-  );
+            {/* Chart */}
+            {chartData && (
+                <Card elevation={4} sx={{ borderRadius: 3, mt: 4, maxWidth: 900, mx: "auto", p: 2 }}>
+                    <Typography variant="h6" fontWeight="bold" mb={2}>30-Day Price Trend</Typography>
+                    <Line data={chartData} />
+                </Card>
+            )}
+        </Box>
+    );
 }
 
 export default StockDetail;
