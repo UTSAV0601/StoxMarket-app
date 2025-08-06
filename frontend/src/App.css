@@ -1,9 +1,21 @@
-#root {
+/* app.css */
+html, body, #root {
+  height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: #121212;
+  color: #e0e0e0;
 }
 
+a {
+  color: #90caf9;
+  text-decoration: none;
+}
+a:hover {
+  color: #42a5f5;
+}
 
 .logo {
   height: 6em;
@@ -14,23 +26,14 @@
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
 
 @keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+a:nth-of-type(2) .logo {
+  animation: logo-spin infinite 20s linear;
 }
 
 .card {

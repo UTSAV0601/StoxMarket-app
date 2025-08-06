@@ -5,9 +5,10 @@ import {
   InputAdornment,
   IconButton,
   List,
-  ListItem,
+  ListItemButton,
   Paper,
   Box,
+  Typography
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
@@ -27,7 +28,7 @@ function SearchBar() {
   };
 
   const handleInputChange = (e) => {
-    const value = e.target.value;
+    const value = e.target.value.toUpperCase();
     setInput(value);
     if (value.length >= 2) fetchSuggestions(value);
     else setSuggestions([]);
@@ -54,6 +55,11 @@ function SearchBar() {
         value={input}
         onChange={handleInputChange}
         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+        name="search"                   // ✅ added
+        autoComplete="off"              // ✅ added
+        autoCapitalize="none"
+        spellCheck="false"
+        sx={{ width: 300 }}
         InputProps={{
           endAdornment: (
             <InputAdornment position="end">
@@ -62,22 +68,35 @@ function SearchBar() {
               </IconButton>
             </InputAdornment>
           ),
-          sx: { backgroundColor: "white", borderRadius: 1 },
+          sx: { backgroundColor: "#fff", borderRadius: 1 } // white input box
         }}
-        sx={{ width: 300 }}
       />
 
       {suggestions.length > 0 && (
-        <Paper sx={{ position: "absolute", width: "100%", zIndex: 10 }}>
-          <List>
+        <Paper
+          sx={{
+            position: "absolute",
+            width: "100%",
+            zIndex: 10,
+            maxHeight: 250,
+            overflowY: "auto",
+            backgroundColor: "#1e1e1e",
+            color: "#e0e0e0"
+          }}
+        >
+          <List disablePadding>
             {suggestions.map((item) => (
-              <ListItem
+              <ListItemButton
                 key={item["1. symbol"]}
-                button
                 onClick={() => handleSuggestionClick(item["1. symbol"])}
               >
-                {item["1. symbol"]} - {item["2. name"]}
-              </ListItem>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {item["1. symbol"]}
+                </Typography>
+                <Typography variant="body2" sx={{ ml: 1, color: "#aaa" }}>
+                  — {item["2. name"]}
+                </Typography>
+              </ListItemButton>
             ))}
           </List>
         </Paper>

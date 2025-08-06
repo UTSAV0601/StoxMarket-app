@@ -1,93 +1,97 @@
-import { useEffect, useState } from "react";
+// src/components/StockDetail.jsx
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import { useEffect, useState } from "react";
 import {
+  Box,
+  Typography,
+  Grid,
   Card,
   CardContent,
-  Typography,
+  Divider,
   CircularProgress,
-  Box,
-  Grid,
 } from "@mui/material";
+import axios from "axios";
 
 function StockDetail() {
   const { symbol } = useParams();
-  const [stockData, setStockData] = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchStockDetail = async () => {
-    try {
-      const res = await axios.get(`http://localhost:8000/api/stock/${symbol}`);
-      setStockData(res.data);
-    } catch (error) {
-      console.error("Error fetching stock data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchStockDetail();
+    const fetchStock = async () => {
+      try {
+        const res = await axios.get(`http://localhost:8000/api/stock/${symbol}`);
+        setData(res.data);
+      } catch (err) {
+        console.error("Failed to fetch stock data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStock();
   }, [symbol]);
 
-  const latestDate = stockData
-    ? Object.keys(stockData["Time Series (Daily)"])[0]
-    : null;
-
-  const latestInfo = latestDate
-    ? stockData["Time Series (Daily)"][latestDate]
-    : null;
-
-  const prevDate = stockData
-    ? Object.keys(stockData["Time Series (Daily)"])[1]
-    : null;
-
-  const prevClose = prevDate
-    ? parseFloat(stockData["Time Series (Daily)"][prevDate]["4. close"])
-    : null;
-
-  const closePrice = latestInfo ? parseFloat(latestInfo["4. close"]) : null;
-  const priceChangeColor = closePrice > prevClose ? "green" : "red";
-
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <CircularProgress />
-      </Box>
-    );
+    return <Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>;
   }
 
-  if (!latestInfo) {
-    return (
-      <Box textAlign="center" mt={4}>
-        <Typography variant="h6">No data found for {symbol}</Typography>
-      </Box>
-    );
+  if (!data || !data["05. price"]) {
+    return <Typography sx={{ m: 4 }}>Stock data unavailable for "{symbol}"</Typography>;
   }
+
+  const price = parseFloat(data["05. price"]);
+  const change = parseFloat(data["09. change"]);
+  const percent = parseFloat(data["10. change percent"]);
+  const isPositive = change >= 0;
 
   return (
-    <Box mt={4} display="flex" justifyContent="center">
-      <Card sx={{ maxWidth: 600, width: "100%", padding: 3, bgcolor: "#f4f4f4" }}>
-        <CardContent>
-          <Typography variant="h5" gutterBottom>
-            {symbol} - {latestDate}
-          </Typography>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4" fontWeight="bold" gutterBottom>
+        {symbol.toUpperCase()}
+      </Typography>
 
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <Typography>Open: ${latestInfo["1. open"]}</Typography>
-              <Typography>High: ${latestInfo["2. high"]}</Typography>
-              <Typography>Low: ${latestInfo["3. low"]}</Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography sx={{ color: priceChangeColor }}>
-                Close: ${latestInfo["4. close"]}
-              </Typography>
-              <Typography>Volume: {latestInfo["5. volume"]}</Typography>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+      <Typography variant="h3" sx={{ color: isPositive ? "limegreen" : "red", mb: 2 }}>
+        ${price.toFixed(2)} {isPositive ? "▲" : "▼"} {change.toFixed(2)} ({percent.toFixed(2)}%)
+      </Typography>
+
+      <Divider sx={{ my: 3 }} />
+
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ backgroundColor: "#1f1f1f", color: "#e0e0e0", boxShadow: 3 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Summary</Typography>
+              <Typography>Open: ${parseFloat(data["02. open"]).toFixed(2)}</Typography>
+              <Typography>High: ${parseFloat(data["03. high"]).toFixed(2)}</Typography>
+              <Typography>Low: ${parseFloat(data["04. low"]).toFixed(2)}</Typography>
+              <Typography>Prev Close: ${parseFloat(data["08. previous close"]).toFixed(2)}</Typography>
+              <Typography>Volume: {Number(data["06. volume"]).toLocaleString()}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={8}>
+          <Card sx={{ backgroundColor: "#1f1f1f", color: "#e0e0e0", boxShadow: 3, height: "100%" }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Stock Chart (Coming Soon)</Typography>
+              <Box
+                sx={{
+                  height: 300,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#2c2c2c",
+                  borderRadius: "4px"
+                }}
+              >
+                <Typography variant="body2" color="gray">
+                  Stock chart will be shown here.
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 }

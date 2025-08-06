@@ -1,3 +1,4 @@
+// src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AppBar, Toolbar, Typography, Box } from "@mui/material";
 import SearchBar from "./components/SearchBar";
@@ -6,15 +7,19 @@ import StockDetail from "./components/StockDetail";
 function App() {
   return (
     <Router>
-      {/* Nav Bar */}
       <AppBar position="static" color="primary">
-        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="h6">StoxTrack</Typography>
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between", px: 2 }}>
+          <Typography 
+            variant="h6"
+            sx={{ cursor: "pointer" }}
+            onClick={() => window.location.href = "/"}
+          >
+            StoxTrack
+          </Typography>
           <SearchBar />
         </Toolbar>
       </AppBar>
 
-      {/* Main Content */}
       <Box sx={{ marginTop: 4, padding: 2 }}>
         <Routes>
           <Route path="/" element={<Home />} />

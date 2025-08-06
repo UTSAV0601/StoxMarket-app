@@ -23,12 +23,13 @@ API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 def get_stock(symbol: str):
     url = "https://www.alphavantage.co/query"
     params = {
-        "function": "TIME_SERIES_DAILY",
+        "function": "GLOBAL_QUOTE",
         "symbol": symbol,
         "apikey": API_KEY
     }
     response = requests.get(url, params=params)
-    return response.json()
+    return response.json()["Global Quote"]
+
 
 @app.get("/api/search/{keyword}")
 def search_symbol(keyword: str):
