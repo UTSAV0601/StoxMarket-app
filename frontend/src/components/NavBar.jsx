@@ -1,5 +1,5 @@
 // src/components/NavBar.jsx
-import { AppBar, Toolbar, Typography, InputBase, Box } from "@mui/material";
+import { AppBar, Toolbar, Typography, InputBase, Box, IconButton } from "@mui/material";
 import { styled, alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import { useState } from "react";
@@ -9,11 +9,8 @@ const Search = styled("div")(({ theme }) => ({
   position: "relative",
   borderRadius: theme.shape.borderRadius,
   backgroundColor: alpha(theme.palette.common.white, 0.15),
-  marginLeft: 0,
-  width: "100%",
-  [theme.breakpoints.up("sm")]: {
-    width: "auto",
-  },
+  marginLeft: theme.spacing(2),
+  width: "250px", // Fixed width
 }));
 
 const SearchIconWrapper = styled("div")(({ theme }) => ({
@@ -28,7 +25,7 @@ const SearchIconWrapper = styled("div")(({ theme }) => ({
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
   color: "inherit",
   paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-  width: "20ch",
+  width: "100%", // Full width of parent Search div
 }));
 
 function NavBar() {
@@ -42,10 +39,20 @@ function NavBar() {
     }
   };
 
+  const goHome = () => {
+    navigate("/");
+  };
+
   return (
-    <AppBar position="static">
+    <AppBar position="fixed"> {/* Make NavBar fixed */}
       <Toolbar sx={{ justifyContent: "space-between" }}>
-        <Typography variant="h6">MarketTrack</Typography>
+        <Typography
+          variant="h6"
+          sx={{ cursor: "pointer" }}
+          onClick={goHome}
+        >
+          MarketTrack
+        </Typography>
         <Search>
           <SearchIconWrapper>
             <SearchIcon />

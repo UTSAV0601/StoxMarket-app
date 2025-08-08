@@ -1,102 +1,105 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   TextField,
-  InputAdornment,
-  IconButton,
   List,
-  ListItemButton,
+  ListItem,
+  ListItemText,
   Paper,
+  IconButton,
+  InputAdornment,
   Box,
-  Typography
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { useNavigate } from "react-router-dom";
 
 function SearchBar() {
-  const [input, setInput] = useState("");
+  const [symbol, setSymbol] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
 
-  const fetchSuggestions = async (keyword) => {
-    try {
-      const res = await axios.get(`http://localhost:8000/api/search/${keyword}`);
-      setSuggestions(res.data.bestMatches || []);
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-    }
-  };
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (symbol.trim() === "") {
+        setSuggestions([]);
+        return;
+      }
 
-  const handleInputChange = (e) => {
-    const value = e.target.value.toUpperCase();
-    setInput(value);
-    if (value.length >= 2) fetchSuggestions(value);
-    else setSuggestions([]);
-  };
+      try {
+        const res = await axios.get(`http://localhost:8000/api/search/${symbol}`);
+        setSuggestions(res.data.bestMatches || []);
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+      }
+    };
 
-  const handleSearch = () => {
-    if (input.trim()) {
-      navigate(`/stock/${input.trim().toUpperCase()}`);
-      setSuggestions([]);
-    }
-  };
+    const debounce = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(debounce);
+  }, [symbol]);
 
-  const handleSuggestionClick = (symbol) => {
-    setInput(symbol);
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (!symbol.trim()) return;
+    navigate(`/stock/${symbol.trim().toUpperCase()}`);
     setSuggestions([]);
-    navigate(`/stock/${symbol}`);
+    setShowSuggestions(false);
+  };
+
+  const handleSuggestionClick = (match) => {
+    const selectedSymbol = match["1. symbol"];
+    navigate(`/stock/${selectedSymbol}`);
+    setSymbol("");
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   return (
-    <Box sx={{ position: "relative", width: "100%" }}>
-      <TextField
-        size="small"
-        placeholder="Search stocks..."
-        value={input}
-        onChange={handleInputChange}
-        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        name="search"                   // ✅ added
-        autoComplete="off"              // ✅ added
-        autoCapitalize="none"
-        spellCheck="false"
-        sx={{ width: 300 }}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <IconButton onClick={handleSearch}>
-                <SearchIcon />
-              </IconButton>
-            </InputAdornment>
-          ),
-          sx: { backgroundColor: "#fff", borderRadius: 1 } // white input box
-        }}
-      />
+    <Box sx={{ position: "relative" }}>
+      <form onSubmit={handleSearchSubmit}>
+        <TextField
+          size="small"
+          fullWidth
+          variant="outlined"
+          placeholder="Search e.g. AAPL"
+          value={symbol}
+          onChange={(e) => {
+            setSymbol(e.target.value);
+            setShowSuggestions(true);
+          }}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton type="submit">
+                  <SearchIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+      </form>
 
-      {suggestions.length > 0 && (
+      {showSuggestions && suggestions.length > 0 && (
         <Paper
+          elevation={4}
           sx={{
             position: "absolute",
-            width: "100%",
+            top: "100%",
+            left: 0,
+            right: 0,
             zIndex: 10,
             maxHeight: 250,
             overflowY: "auto",
-            backgroundColor: "#1e1e1e",
-            color: "#e0e0e0"
           }}
         >
-          <List disablePadding>
-            {suggestions.map((item) => (
-              <ListItemButton
-                key={item["1. symbol"]}
-                onClick={() => handleSuggestionClick(item["1. symbol"])}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {item["1. symbol"]}
-                </Typography>
-                <Typography variant="body2" sx={{ ml: 1, color: "#aaa" }}>
-                  — {item["2. name"]}
-                </Typography>
-              </ListItemButton>
+          <List dense>
+            {suggestions.map((match, index) => (
+              <ListItem button key={index} onClick={() => handleSuggestionClick(match)}>
+                <ListItemText
+                  primary={`${match["1. symbol"]} - ${match["2. name"]}`}
+                  secondary={match["4. region"]}
+                />
+              </ListItem>
             ))}
           </List>
         </Paper>
