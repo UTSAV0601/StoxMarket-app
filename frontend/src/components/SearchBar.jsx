@@ -26,10 +26,13 @@ function SearchBar() {
         return;
       }
 
-      try {
+      try 
+      {
         const res = await axios.get(`http://localhost:8000/api/search/${symbol}`);
-        setSuggestions(res.data.bestMatches || []);
-      } catch (error) {
+        setSuggestions(res.data || []);
+      } 
+      catch (error) 
+      {
         console.error("Error fetching suggestions:", error);
       }
     };
@@ -47,8 +50,7 @@ function SearchBar() {
   };
 
   const handleSuggestionClick = (match) => {
-    const selectedSymbol = match["1. symbol"];
-    navigate(`/stock/${selectedSymbol}`);
+    navigate(`/stock/${match.symbol}`);
     setSymbol("");
     setSuggestions([]);
     setShowSuggestions(false);
@@ -67,6 +69,7 @@ function SearchBar() {
             setSymbol(e.target.value);
             setShowSuggestions(true);
           }}
+          autoComplete="off"    // <== This disables browser native autocomplete
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
@@ -96,8 +99,8 @@ function SearchBar() {
             {suggestions.map((match, index) => (
               <ListItem button key={index} onClick={() => handleSuggestionClick(match)}>
                 <ListItemText
-                  primary={`${match["1. symbol"]} - ${match["2. name"]}`}
-                  secondary={match["4. region"]}
+                  primary={`${match.symbol} - ${match.name}`}
+                  secondary={match.exchange}
                 />
               </ListItem>
             ))}
