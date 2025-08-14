@@ -3,11 +3,12 @@ from pydantic import BaseModel
 from typing import List, Optional
 from uuid import uuid4
 from sqlalchemy.orm import Session
-
 from database import SessionLocal
 from models import WatchlistItem
 
 router = APIRouter(prefix="/watchlist", tags=["watchlist"])
+
+DUMMY_USER_ID = "dummy_user_123"
 
 class WatchlistItemCreate(BaseModel):
     symbol: str
@@ -27,24 +28,24 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/{owner_id}", response_model=List[WatchlistItemOut])
-def get_watchlist(owner_id: str, db: Session = Depends(get_db)):
-    items = db.query(WatchlistItem).filter(WatchlistItem.owner_id == owner_id).all()
-    out = []
-    for it in items:
-        out.append({
+@router.get("/", response_model=List[WatchlistItemOut])
+def get_watchlist(db: Session = Depends(get_db)):
+    items = db.query(WatchlistItem).filter(WatchlistItem.owner_id == DUMMY_USER_ID).all()
+    return [
+        {
             "symbol": it.symbol,
             "price": it.price,
             "changePercent": it.change_percent,
             "added_at": it.added_at.isoformat() if it.added_at else None
-        })
-    return out
+        }
+        for it in items
+    ]
 
-@router.post("/{owner_id}", response_model=WatchlistItemOut)
-def add_or_update_watchlist(owner_id: str, payload: WatchlistItemCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=WatchlistItemOut)
+def add_or_update_watchlist(payload: WatchlistItemCreate, db: Session = Depends(get_db)):
     symbol = payload.symbol.upper().strip()
     existing = db.query(WatchlistItem).filter(
-        WatchlistItem.owner_id == owner_id,
+        WatchlistItem.owner_id == DUMMY_USER_ID,
         WatchlistItem.symbol == symbol
     ).first()
 
@@ -63,7 +64,7 @@ def add_or_update_watchlist(owner_id: str, payload: WatchlistItemCreate, db: Ses
 
     item = WatchlistItem(
         id=str(uuid4()),
-        owner_id=owner_id,
+        owner_id=DUMMY_USER_ID,
         symbol=symbol,
         price=payload.price,
         change_percent=payload.changePercent
@@ -78,10 +79,13 @@ def add_or_update_watchlist(owner_id: str, payload: WatchlistItemCreate, db: Ses
         "added_at": item.added_at.isoformat() if item.added_at else None
     }
 
-@router.delete("/{owner_id}/{symbol}")
-def delete_watchlist_item(owner_id: str, symbol: str, db: Session = Depends(get_db)):
+@router.delete("/{symbol}")
+def delete_watchlist_item(symbol: str, db: Session = Depends(get_db)):
     sym = symbol.upper().strip()
-    item = db.query(WatchlistItem).filter(WatchlistItem.owner_id == owner_id, WatchlistItem.symbol == sym).first()
+    item = db.query(WatchlistItem).filter(
+        WatchlistItem.owner_id == DUMMY_USER_ID,
+        WatchlistItem.symbol == sym
+    ).first()
     if not item:
         raise HTTPException(status_code=404, detail="Symbol not found")
     db.delete(item)

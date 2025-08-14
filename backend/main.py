@@ -5,11 +5,12 @@ import requests
 import os
 from dotenv import load_dotenv
 import time
+from database import engine, Base
+from models import WatchlistItem
+from routers.watchlist import router as watchlist_router
 
-# load env
 load_dotenv()
 
-# === FINNHUB config (your existing routes) ===
 API_KEY = os.getenv("FINNHUB_API_KEY")
 BASE_URL = "https://finnhub.io/api/v1"
 
@@ -17,7 +18,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten in prod
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -102,14 +103,6 @@ def get_stock_history(symbol: str):
     }]
     return {"values": candles}
 
-# === DATABASE + Watchlist router (new) ===
-# create DB & include router
-from database import engine, Base
-from models import WatchlistItem
-from routers.watchlist import router as watchlist_router
 
-# Create tables (if not exist)
 Base.metadata.create_all(bind=engine)
-
-# include the watchlist router
 app.include_router(watchlist_router)
