@@ -1,26 +1,25 @@
+// src/context/WatchlistContext.jsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
+import { useAuth } from "./AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 const WatchlistContext = createContext();
-
 export const useWatchlist = () => useContext(WatchlistContext);
 
 export const WatchlistProvider = ({ children }) => {
   const [watchlist, setWatchlist] = useState([]);
+  const { api } = useAuth();
 
-  // fetch watchlist from backend
   useEffect(() => {
-    const fetch = async () => {
+    const fetchWatchlist = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/watchlist/`);
+        const res = await api.get(`/watchlist/`);
         setWatchlist(res.data || []);
       } catch (err) {
         console.error("Failed to fetch watchlist", err);
       }
     };
-    fetch();
-  }, []);
+    fetchWatchlist();
+  }, [api]);
 
   const addToWatchlist = async (stock) => {
     try {
@@ -29,7 +28,7 @@ export const WatchlistProvider = ({ children }) => {
         price: stock.price ?? null,
         changePercent: stock.changePercent ?? null,
       };
-      const res = await axios.post(`${API_BASE}/watchlist/`, payload);
+      const res = await api.post(`/watchlist/`, payload);
       setWatchlist((prev) => {
         const without = prev.filter((s) => s.symbol !== res.data.symbol);
         return [...without, res.data];
@@ -42,7 +41,7 @@ export const WatchlistProvider = ({ children }) => {
 
   const removeFromWatchlist = async (symbol) => {
     try {
-      await axios.delete(`${API_BASE}/watchlist/${symbol}`);
+      await api.delete(`/watchlist/${symbol}`);
       setWatchlist((prev) => prev.filter((s) => s.symbol !== symbol));
     } catch (err) {
       console.error("Remove watchlist failed", err);

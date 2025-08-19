@@ -1,13 +1,14 @@
-# backend/main.py
+# main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import requests
 import os
-from dotenv import load_dotenv
 import time
+import requests
+from dotenv import load_dotenv
+
 from database import engine, Base
-from models import WatchlistItem
 from routers.watchlist import router as watchlist_router
+from routers.auth import router as auth_router
 
 load_dotenv()
 
@@ -18,7 +19,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # tighten in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,18 +28,15 @@ app.add_middleware(
 @app.get("/api/search/{keyword}")
 def search_symbol(keyword: str):
     url = f"{BASE_URL}/search"
-    params = {
-        "q": keyword,
-        "token": API_KEY
-    }
-    response = requests.get(url, params=params)
+    params = {"q": keyword, "token": API_KEY}
+    response = requests.get(url, params=params, timeout=15)
     data = response.json()
     results = data.get("result", [])
     mapped_results = [
         {
             "symbol": item.get("symbol"),
             "name": item.get("description"),
-            "exchange": item.get("exchange")
+            "exchange": item.get("exchange"),
         }
         for item in results
     ]
@@ -47,12 +45,9 @@ def search_symbol(keyword: str):
 @app.get("/api/stock/{symbol}")
 def get_stock(symbol: str):
     url = f"{BASE_URL}/quote"
-    params = {
-        "symbol": symbol,
-        "token": API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
+    params = {"symbol": symbol, "token": API_KEY}
+    data = requests.get(url, params=params, timeout=15).json()
+
     open_price = data.get("o")
     close_price = data.get("c")
     high_price = data.get("h")
@@ -60,6 +55,7 @@ def get_stock(symbol: str):
     prev_close = data.get("pc")
     volume = data.get("v")
     timestamp = data.get("t")
+
     change = None
     percent_change = None
     if close_price is not None and prev_close:
@@ -68,7 +64,9 @@ def get_stock(symbol: str):
             percent_change = (change / prev_close) * 100
         except ZeroDivisionError:
             percent_change = None
+
     return {
+        "symbol": symbol.upper(),
         "open": open_price,
         "close": close_price,
         "high": high_price,
@@ -78,20 +76,18 @@ def get_stock(symbol: str):
         "volume": volume,
         "timestamp": timestamp,
         "change": round(change, 2) if change is not None else None,
-        "percent_change": round(percent_change, 2) if percent_change is not None else None
+        "percent_change": round(percent_change, 2) if percent_change is not None else None,
     }
 
 @app.get("/api/history/{symbol}")
 def get_stock_history(symbol: str):
+    # keep simple "today candle" as you had
     url = f"{BASE_URL}/quote"
-    params = {
-        "symbol": symbol,
-        "token": API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
+    params = {"symbol": symbol, "token": API_KEY}
+    data = requests.get(url, params=params, timeout=15).json()
     if not data or "c" not in data:
         return {"values": []}
+
     today_date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
     candles = [{
         "datetime": today_date,
@@ -99,10 +95,11 @@ def get_stock_history(symbol: str):
         "close": data.get("c"),
         "high": data.get("h"),
         "low": data.get("l"),
-        "volume": data.get("v")
+        "volume": data.get("v"),
     }]
     return {"values": candles}
 
-
+# Create tables and mount routers
 Base.metadata.create_all(bind=engine)
+app.include_router(auth_router)
 app.include_router(watchlist_router)

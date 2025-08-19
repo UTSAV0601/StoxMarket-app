@@ -1,15 +1,10 @@
+// src/components/SearchBar.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  TextField,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
-  IconButton,
-  InputAdornment,
-  Box,
+  TextField, List, ListItem, ListItemText, Paper,
+  IconButton, InputAdornment, Box,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 
@@ -25,18 +20,13 @@ function SearchBar() {
         setSuggestions([]);
         return;
       }
-
-      try 
-      {
+      try {
         const res = await axios.get(`http://localhost:8000/api/search/${symbol}`);
         setSuggestions(res.data || []);
-      } 
-      catch (error) 
-      {
+      } catch (error) {
         console.error("Error fetching suggestions:", error);
       }
     };
-
     const debounce = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounce);
   }, [symbol]);
@@ -69,7 +59,7 @@ function SearchBar() {
             setSymbol(e.target.value);
             setShowSuggestions(true);
           }}
-          autoComplete="off"    // <== This disables browser native autocomplete
+          autoComplete="off"
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
@@ -97,7 +87,11 @@ function SearchBar() {
         >
           <List dense>
             {suggestions.map((match, index) => (
-              <ListItem button key={index} onClick={() => handleSuggestionClick(match)}>
+              <ListItem
+                key={index}
+                onClick={() => handleSuggestionClick(match)}
+                sx={{ cursor: "pointer" }}
+              >
                 <ListItemText
                   primary={`${match.symbol} - ${match.name}`}
                   secondary={match.exchange}
@@ -110,5 +104,4 @@ function SearchBar() {
     </Box>
   );
 }
-
 export default SearchBar;

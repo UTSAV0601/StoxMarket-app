@@ -1,14 +1,15 @@
+# routers/watchlist.py
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from uuid import uuid4
 from sqlalchemy.orm import Session
+
 from database import SessionLocal
-from models import WatchlistItem
+from models import WatchlistItem, User
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="/watchlist", tags=["watchlist"])
-
-DUMMY_USER_ID = "dummy_user_123"
 
 class WatchlistItemCreate(BaseModel):
     symbol: str
@@ -29,29 +30,32 @@ def get_db():
         db.close()
 
 @router.get("/", response_model=List[WatchlistItemOut])
-def get_watchlist(db: Session = Depends(get_db)):
-    items = db.query(WatchlistItem).filter(WatchlistItem.owner_id == DUMMY_USER_ID).all()
-    return [
-        {
-            "symbol": it.symbol,
-            "price": it.price,
-            "changePercent": it.change_percent,
-            "added_at": it.added_at.isoformat() if it.added_at else None
-        }
-        for it in items
-    ]
+def get_watchlist(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    items = db.query(WatchlistItem).filter(WatchlistItem.owner_id == user.id).all()
+    return [{
+        "symbol": it.symbol,
+        "price": it.price,
+        "changePercent": it.change_percent,
+        "added_at": it.added_at.isoformat() if it.added_at else None
+    } for it in items]
 
 @router.post("/", response_model=WatchlistItemOut)
-def add_or_update_watchlist(payload: WatchlistItemCreate, db: Session = Depends(get_db)):
+def add_or_update_watchlist(
+    payload: WatchlistItemCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
     symbol = payload.symbol.upper().strip()
     existing = db.query(WatchlistItem).filter(
-        WatchlistItem.owner_id == DUMMY_USER_ID,
+        WatchlistItem.owner_id == user.id,
         WatchlistItem.symbol == symbol
     ).first()
 
     if existing:
-        existing.price = payload.price if payload.price is not None else existing.price
-        existing.change_percent = payload.changePercent if payload.changePercent is not None else existing.change_percent
+        if payload.price is not None:
+            existing.price = payload.price
+        if payload.changePercent is not None:
+            existing.change_percent = payload.changePercent
         db.add(existing)
         db.commit()
         db.refresh(existing)
@@ -64,7 +68,7 @@ def add_or_update_watchlist(payload: WatchlistItemCreate, db: Session = Depends(
 
     item = WatchlistItem(
         id=str(uuid4()),
-        owner_id=DUMMY_USER_ID,
+        owner_id=user.id,
         symbol=symbol,
         price=payload.price,
         change_percent=payload.changePercent
@@ -80,10 +84,10 @@ def add_or_update_watchlist(payload: WatchlistItemCreate, db: Session = Depends(
     }
 
 @router.delete("/{symbol}")
-def delete_watchlist_item(symbol: str, db: Session = Depends(get_db)):
+def delete_watchlist_item(symbol: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     sym = symbol.upper().strip()
     item = db.query(WatchlistItem).filter(
-        WatchlistItem.owner_id == DUMMY_USER_ID,
+        WatchlistItem.owner_id == user.id,
         WatchlistItem.symbol == sym
     ).first()
     if not item:
